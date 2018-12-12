@@ -137,6 +137,7 @@ RUN \
  curl -o /tmp/nzbget.run -L "https://github.com/nzbget/nzbget/releases/download/v20.0/nzbget-20.0-bin-linux.run" && \
  sh /tmp/nzbget.run --destdir /app/nzbget && \
  echo "**** configure nzbget ****" && \
+ mkdir -p /defaults && \
  cp /app/nzbget/nzbget.conf /defaults/nzbget.conf && \
  sed -i \
 	-e "s#\(MainDir=\).*#\1/downloads#g" \

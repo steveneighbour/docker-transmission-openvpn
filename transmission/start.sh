@@ -76,6 +76,19 @@ fi
 
 if [[ "true" = "$LOG_TO_STDOUT" ]]; then
   LOGFILE=/dev/stdout
+echo "STARTING TRANSMISSION"
+exec su --preserve-environment ${RUN_AS} -s /bin/bash -c "/usr/bin/transmission-daemon -g ${TRANSMISSION_HOME} --logfile ${TRANSMISSION_HOME}/transmission.log" &
+echo "STARTING NZBGET"
+exec su --preserve-environment ${RUN_AS} -s /bin/bash -c "/app/nzbget/nzbget -s -c /config/nzbget.conf -o OutputMode=log" &
+
+if [ "$OPENVPN_PROVIDER" = "PIA" ]
+then
+    echo "CONFIGURING PORT FORWARDING"
+    exec /etc/transmission/updatePort.sh &
+elif [ "$OPENVPN_PROVIDER" = "PERFECTPRIVACY" ]
+then
+    echo "CONFIGURING PORT FORWARDING"
+    exec /etc/transmission/updatePPPort.sh ${TRANSMISSION_BIND_ADDRESS_IPV4} &
 else
   LOGFILE=${TRANSMISSION_HOME}/transmission.log
 fi

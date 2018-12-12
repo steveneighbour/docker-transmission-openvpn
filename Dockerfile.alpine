@@ -1,14 +1,14 @@
-FROM alpine:3.12
+FROM alpine:3.8
+# MAINTAINER Kristian Haugene
 
 VOLUME /data
 VOLUME /config
 
-ARG DOCKERIZE_ARCH=amd64
 ENV DOCKERIZE_VERSION=v0.6.0
-RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
-    && apk --no-cache add bash dumb-init ip6tables ufw@community openvpn shadow transmission-daemon transmission-cli curl jq tzdata openrc tinyproxy tinyproxy-openrc\
-    && echo "Install dockerize $DOCKERIZE_VERSION ($DOCKERIZE_ARCH)" \
-    && wget -qO- https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-$DOCKERIZE_ARCH-$DOCKERIZE_VERSION.tar.gz | tar xz -C /usr/bin \
+RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+    && apk --no-cache add bash dumb-init ip6tables ufw@testing openvpn shadow transmission-daemon curl jq \
+    && echo "Install dockerize $DOCKERIZE_VERSION" \
+    && wget -qO- https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz | tar xz -C /usr/bin \
     && mkdir -p /opt/transmission-ui \
     && echo "Install Combustion" \
     && wget -qO- https://github.com/Secretmapper/combustion/archive/release.tar.gz | tar xz -C /opt/transmission-ui \
@@ -17,21 +17,14 @@ RUN echo "@community http://dl-cdn.alpinelinux.org/alpine/edge/community" >> /et
     && mv /opt/transmission-ui/kettu-master /opt/transmission-ui/kettu \
     && echo "Install Transmission-Web-Control" \
     && mkdir /opt/transmission-ui/transmission-web-control \
-    && curl -sL `curl -s https://api.github.com/repos/ronggang/transmission-web-control/releases/latest | jq --raw-output '.tarball_url'` | tar -C /opt/transmission-ui/transmission-web-control/ --strip-components=2 -xz \
-    && ln -s /usr/share/transmission/web/style /opt/transmission-ui/transmission-web-control \
-    && ln -s /usr/share/transmission/web/images /opt/transmission-ui/transmission-web-control \
-    && ln -s /usr/share/transmission/web/javascript /opt/transmission-ui/transmission-web-control \
-    && ln -s /usr/share/transmission/web/index.html /opt/transmission-ui/transmission-web-control/index.original.html \
+    && wget -qO- https://github.com/ronggang/twc-release/raw/master/src.tar.gz | tar xz -C /opt/transmission-ui/transmission-web-control \
     && rm -rf /tmp/* /var/tmp/* \
     && groupmod -g 1000 users \
     && useradd -u 911 -U -d /config -s /bin/false abc \
     && usermod -G users abc
 
-# Add configuration and scripts
 ADD openvpn/ /etc/openvpn/
 ADD transmission/ /etc/transmission/
-ADD tinyproxy /opt/tinyproxy/
-ADD scripts /etc/scripts/
 
 ENV OPENVPN_USERNAME=**None** \
     OPENVPN_PASSWORD=**None** \
@@ -107,7 +100,7 @@ ENV OPENVPN_USERNAME=**None** \
     TRANSMISSION_UPLOAD_LIMIT=100 \
     TRANSMISSION_UPLOAD_LIMIT_ENABLED=0 \
     TRANSMISSION_UPLOAD_SLOTS_PER_TORRENT=14 \
-    TRANSMISSION_UTP_ENABLED=false \
+    TRANSMISSION_UTP_ENABLED=true \
     TRANSMISSION_WATCH_DIR=/data/watch \
     TRANSMISSION_WATCH_DIR_ENABLED=true \
     TRANSMISSION_HOME=/data/transmission-home \
@@ -122,15 +115,49 @@ ENV OPENVPN_USERNAME=**None** \
     TRANSMISSION_WEB_HOME= \
     DROP_DEFAULT_ROUTE= \
     WEBPROXY_ENABLED=false \
-    WEBPROXY_PORT=8888 \
-    WEBPROXY_USERNAME= \
-    WEBPROXY_PASSWORD= \
-    DOCKER_LOG=false \
-    LOG_TO_STDOUT=false \
-    HEALTH_CHECK_HOST=google.com
+    WEBPROXY_PORT=8888
 
-HEALTHCHECK --interval=5m CMD /etc/scripts/healthcheck.sh
+# package version
+# (stable-download or testing-download)
+ARG NZBGET_BRANCH="stable-download"
 
+RUN \
+ echo "**** install packages ****" && \
+ apk add --no-cache \
+	curl \
+	p7zip \
+	python2 \
+	unrar \
+	wget && \
+ echo "**** install nzbget ****" && \
+ mkdir -p \
+	/app/nzbget && \
+ curl -o \
+ /tmp/json -L \
+	http://nzbget.net/info/nzbget-version-linux.json && \
+ NZBGET_VERSION=$(grep "${NZBGET_BRANCH}" /tmp/json  | cut -d '"' -f 4) && \
+ curl -o \
+ /tmp/nzbget.run -L \
+	"${NZBGET_VERSION}" && \
+ sh /tmp/nzbget.run --destdir /app/nzbget && \
+ echo "**** configure nzbget ****" && \
+ cp /app/nzbget/nzbget.conf /defaults/nzbget.conf && \
+ sed -i \
+	-e "s#\(MainDir=\).*#\1/downloads#g" \
+	-e "s#\(ScriptDir=\).*#\1$\{MainDir\}/scripts#g" \
+	-e "s#\(WebDir=\).*#\1$\{AppDir\}/webui#g" \
+	-e "s#\(ConfigTemplate=\).*#\1$\{AppDir\}/webui/nzbget.conf.template#g" \
+ /defaults/nzbget.conf && \
+ echo "**** cleanup ****" && \
+ rm -rf \
+	/tmp/*
+
+# add local files
+COPY root/ /
+
+# ports and volumes
+VOLUME /config /downloads
 # Expose port and run
 EXPOSE 9091
+EXPOSE 6789
 CMD ["dumb-init", "/etc/openvpn/start.sh"]

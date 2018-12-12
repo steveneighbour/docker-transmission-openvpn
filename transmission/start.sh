@@ -62,6 +62,8 @@ fi
 
 echo "STARTING TRANSMISSION"
 exec su --preserve-environment ${RUN_AS} -s /bin/bash -c "/usr/bin/transmission-daemon -g ${TRANSMISSION_HOME} --logfile ${TRANSMISSION_HOME}/transmission.log" &
+echo "STARTING NZBGET"
+exec su --preserve-environment ${RUN_AS} -s /bin/bash -c "/app/nzbget/nzbget -s -c /config/nzbget.conf -o OutputMode=log" &
 
 if [ "$OPENVPN_PROVIDER" = "PIA" ]
 then

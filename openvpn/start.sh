@@ -10,6 +10,13 @@ if [[ "${CREATE_TUN_DEVICE,,}" == "true" ]]; then
   chmod 0666 /dev/net/tun
 fi
 
+# If create_tun_device is set, create /dev/net/tun
+if [[ "${CREATE_TUN_DEVICE,,}" == "true" ]]; then
+  mkdir -p /dev/net
+  mknod /dev/net/tun c 10 200
+  chmod 0666 /dev/net/tun
+fi
+
 if [[ "${OPENVPN_PROVIDER}" == "**None**" ]] || [[ -z "${OPENVPN_PROVIDER-}" ]]; then
   echo "OpenVPN provider not set. Exiting."
   exit 1

@@ -48,6 +48,9 @@ ADD scripts /etc/scripts/
 ENV OPENVPN_USERNAME=**None** \
     OPENVPN_PASSWORD=**None** \
     OPENVPN_PROVIDER=**None** \
+    NORDVPN_COUNTRY= \
+    NORDVPN_PROTOCOL=TCP \
+    NORDVPN_CATEGORY=P2P \
     GLOBAL_APPLY_PERMISSIONS=true \
     ENABLE_UFW=false \
     UFW_ALLOW_GW_NET=false \

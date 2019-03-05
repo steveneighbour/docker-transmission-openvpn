@@ -40,7 +40,8 @@ if [[ "$OPENVPN_PROVIDER" = "NORDVPN" ]]
 then
     if [[ -z $NORDVPN_PROTOCOL ]]
     then
-      export NORDVPN_PROTOCOL=UDP
+        export OPENVPN_CONFIG=$(./NordVPN.sh)
+        echo "Setting best server ${OPENVPN_CONFIG}"
     fi
 
     if [[ -z $NORDVPN_CATEGORY ]]

@@ -65,11 +65,11 @@ exec su --preserve-environment ${RUN_AS} -s /bin/bash -c "/usr/bin/transmission-
 echo "STARTING NZBGET"
 exec su --preserve-environment ${RUN_AS} -s /bin/bash -c "/app/nzbget/nzbget -s -c /config/nzbget.conf -o OutputMode=log" &
 
-if [[ "$OPENVPN_PROVIDER" = "PIA" ]]
+if [[ "${OPENVPN_PROVIDER^^}" = "PIA" ]]
 then
     echo "CONFIGURING PORT FORWARDING"
     exec /etc/transmission/updatePort.sh &
-elif [[ "$OPENVPN_PROVIDER" = "PERFECTPRIVACY" ]]
+elif [[ "${OPENVPN_PROVIDER^^}" = "PERFECTPRIVACY" ]]
 then
     echo "CONFIGURING PORT FORWARDING"
     exec /etc/transmission/updatePPPort.sh ${TRANSMISSION_BIND_ADDRESS_IPV4} &

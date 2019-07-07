@@ -1,5 +1,4 @@
-FROM alpine:latest
-# MAINTAINER Kristian Haugene
+FROM ubuntu:16.04
 
 VOLUME /data
 VOLUME /config

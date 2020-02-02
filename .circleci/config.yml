@@ -45,28 +45,7 @@ workflows:
             branches:
               ignore: /.*/
             tags:
-              only: /^\d+\.\d+.*/
-      - build-alpine-image:
-          context: dockerhub
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^\d+\.\d+.*/
-      - build-armhf-image:
-          context: dockerhub
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^\d+\.\d+.*/
-      - build-arm64-image:
-          context: dockerhub
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^\d+\.\d+.*/
+              only: /^\d+\.\d+/
 
 jobs:
   build-ubuntu-image:
@@ -82,26 +61,6 @@ jobs:
       - run:
           name: Build Docker image
           command: docker build -t $IMAGE_NAME:$IMAGE_TAG .
-      - run:
-          name: Login to Docker Hub
-          command: echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-      - run:
-          name: Push image
-          command: docker push $IMAGE_NAME:$IMAGE_TAG
-
-  build-alpine-image:
-    environment:
-      IMAGE_NAME: haugene/transmission-openvpn
-    docker:
-      - image: circleci/buildpack-deps:stretch
-    steps:
-      - checkout
-      - setup_remote_docker
-      - calculate-tag-name:
-          distro: alpine
-      - run:
-          name: Build Docker image
-          command: docker build -t $IMAGE_NAME:$IMAGE_TAG -f Dockerfile.alpine .
       - run:
           name: Login to Docker Hub
           command: echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
@@ -191,8 +150,8 @@ commands:
               TAG_VERSION=$CIRCLE_BRANCH;
             fi
 
-            if [ "<< parameters.distro >>" = "ubuntu" ]; then
-              TAG_DISTRO="";
+            if [ "<< parameters.distro >>" = "ubuntu" ]; then 
+              TAG_DISTRO=""; 
             else
               TAG_DISTRO=-<< parameters.distro >>;
             fi

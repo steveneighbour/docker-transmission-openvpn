@@ -46,6 +46,7 @@ ADD scripts /etc/scripts/
 ENV OPENVPN_USERNAME=**None** \
     OPENVPN_PASSWORD=**None** \
     OPENVPN_PROVIDER=**None** \
+    DNS=8.8.8.8 \
     GLOBAL_APPLY_PERMISSIONS=true \
     ENABLE_UFW=false \
     UFW_ALLOW_GW_NET=false \

@@ -1,6 +1,14 @@
 #!/bin/bash
 VPN_PROVIDER="${OPENVPN_PROVIDER,,}"
 VPN_PROVIDER_CONFIGS="/etc/openvpn/${VPN_PROVIDER}"
+export VPN_PROVIDER_CONFIGS
+
+# If create_tun_device is set, create /dev/net/tun
+if [[ "${CREATE_TUN_DEVICE,,}" == "true" ]]; then
+  mkdir -p /dev/net
+  mknod /dev/net/tun c 10 200
+  chmod 0666 /dev/net/tun
+fi
 
 if [[ "${OPENVPN_PROVIDER}" == "**None**" ]] || [[ -z "${OPENVPN_PROVIDER-}" ]]; then
   echo "OpenVPN provider not set. Exiting."
@@ -13,13 +21,62 @@ fi
 
 echo "Using OpenVPN provider: ${OPENVPN_PROVIDER}"
 
-if [[ "$OPENVPN_PROVIDER" = "NORDVPN" ]]
+# If openvpn-pre-start.sh exists, run it
+if [ -x /scripts/openvpn-pre-start.sh ]
 then
-    if [[ -z "$OPENVPN_CONFIG" ]]
+   echo "Executing /scripts/openvpn-pre-start.sh"
+   /scripts/openvpn-pre-start.sh "$@"
+   echo "/scripts/openvpn-pre-start.sh returned $?"
+fi
+
+if [[ "${OPENVPN_PROVIDER^^}" = "NORDVPN" ]]
+then
+    if [[ -z $NORDVPN_PROTOCOL ]]
     then
-        export OPENVPN_CONFIG=$(curl -s 'https://nordvpn.com/wp-admin/admin-ajax.php?action=servers_recommendations' | jq -r '.[0].hostname').udp
-        echo "Setting best server ${OPENVPN_CONFIG}"
+      export NORDVPN_PROTOCOL=UDP
     fi
+
+    if [[ -z $NORDVPN_CATEGORY ]]
+    then
+      export NORDVPN_CATEGORY=P2P
+    fi
+
+    if [[ -n $OPENVPN_CONFIG ]]
+    then
+      tmp_Protocol="${OPENVPN_CONFIG##*.}"
+      export NORDVPN_PROTOCOL=${tmp_Protocol^^}
+      echo "Setting NORDVPN_PROTOCOL to: ${NORDVPN_PROTOCOL}"
+      ${VPN_PROVIDER_CONFIGS}/updateConfigs.sh --openvpn-config
+    elif [[ -n $NORDVPN_COUNTRY ]]
+    then
+      export OPENVPN_CONFIG=$(${VPN_PROVIDER_CONFIGS}/updateConfigs.sh)
+    else
+      export OPENVPN_CONFIG=$(${VPN_PROVIDER_CONFIGS}/updateConfigs.sh --get-recommended)
+    fi
+elif [[ "${OPENVPN_PROVIDER^^}" = "FREEVPN" ]]
+then
+    FREEVPN_DOMAIN=${OPENVPN_CONFIG%%-*}
+    
+    # Update FreeVPN certs
+    /etc/openvpn/updateFreeVPN.sh
+    # Get password obtained from updateFreeVPN.sh
+    export OPENVPN_PASSWORD=$(cat /etc/freevpn_password)
+    rm /etc/freevpn_password
+elif [[ "${OPENVPN_PROVIDER^^}" = "VPNBOOK" ]]
+then
+    pwd_url=$(curl -s "https://www.vpnbook.com/freevpn" | grep -m2 "Password:" | tail -n1 | cut -d \" -f2)
+    curl -s -X POST --header "apikey: 5a64d478-9c89-43d8-88e3-c65de9999580" \
+      -F "url=https://www.vpnbook.com/${pwd_url}" \
+      -F 'language=eng' \
+      -F 'isOverlayRequired=true' \
+      -F 'FileType=.Auto' \
+      -F 'IsCreateSearchablePDF=false' \
+      -F 'isSearchablePdfHideTextLayer=true' \
+      -F 'scale=true' \
+      -F 'detectOrientation=false' \
+      -F 'isTable=false' \
+      "https://api.ocr.space/parse/image" -o /tmp/vpnbook_pwd
+    export OPENVPN_PASSWORD=$(cat /tmp/vpnbook_pwd  | awk -F',' '{ print $1 }' | awk -F':' '{print $NF}' | tr -d '"' | awk '{print $1 $2}')
 fi
 
 if [[ -n "${OPENVPN_CONFIG-}" ]]; then
@@ -34,7 +91,6 @@ if [[ -n "${OPENVPN_CONFIG-}" ]]; then
     echo "${#OPENVPN_CONFIG_ARRAY[@]} servers found in OPENVPN_CONFIG, ${OPENVPN_CONFIG_ARRAY[${OPENVPN_CONFIG_RANDOM}]} chosen randomly"
     OPENVPN_CONFIG="${OPENVPN_CONFIG_ARRAY[${OPENVPN_CONFIG_RANDOM}]}"
   fi
-
   if [[ -f "${VPN_PROVIDER_CONFIGS}/${OPENVPN_CONFIG}.ovpn" ]]; then
     echo "Starting OpenVPN using config ${OPENVPN_CONFIG}.ovpn"
     OPENVPN_CONFIG="${VPN_PROVIDER_CONFIGS}/${OPENVPN_CONFIG}.ovpn"
@@ -74,10 +130,10 @@ TRANSMISSION_CONTROL_OPTS="--script-security 2 --up-delay --up /etc/openvpn/tunn
 
 ## If we use UFW or the LOCAL_NETWORK we need to grab network config info
 if [[ "${ENABLE_UFW,,}" == "true" ]] || [[ -n "${LOCAL_NETWORK-}" ]]; then
-  eval $(/sbin/ip r l m 0.0.0.0 | awk '{if($5!="tun0"){print "GW="$3"\nINT="$5; exit}}')
+  eval $(/sbin/ip route list match 0.0.0.0 | awk '{if($5!="tun0"){print "GW="$3"\nINT="$5; exit}}')
   ## IF we use UFW_ALLOW_GW_NET along with ENABLE_UFW we need to know what our netmask CIDR is
   if [[ "${ENABLE_UFW,,}" == "true" ]] && [[ "${UFW_ALLOW_GW_NET,,}" == "true" ]]; then
-    eval $(ip r l dev ${INT} | awk '{if($5=="link"){print "GW_CIDR="$1; exit}}')
+    eval $(/sbin/ip route list dev ${INT} | awk '{if($5=="link"){print "GW_CIDR="$1; exit}}')
   fi
 fi
 
@@ -146,7 +202,7 @@ if [[ -n "${LOCAL_NETWORK-}" ]]; then
   if [[ -n "${GW-}" ]] && [[ -n "${INT-}" ]]; then
     for localNet in ${LOCAL_NETWORK//,/ }; do
       echo "adding route to local network ${localNet} via ${GW} dev ${INT}"
-      /sbin/ip r a "${localNet}" via "${GW}" dev "${INT}"
+      /sbin/ip route add "${localNet}" via "${GW}" dev "${INT}"
       if [[ "${ENABLE_UFW,,}" == "true" ]]; then
         ufwAllowPortLong TRANSMISSION_RPC_PORT localNet
         if [[ -n "${UFW_EXTRA_PORTS-}" ]]; then

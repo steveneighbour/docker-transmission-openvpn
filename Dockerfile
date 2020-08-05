@@ -134,7 +134,7 @@ RUN \
 	/app/nzbget && \
  #curl -o /tmp/json -L "http://nzbget.net/info/nzbget-version-linux.json" && \
  #NZBGET_VERSION=$(grep "${NZBGET_BRANCH}" /tmp/json  | cut -d '"' -f 4) && \
- curl -o /tmp/nzbget.run -L "https://github.com/nzbget/nzbget/releases/download/v21.0/nzbget-21.0-bin-linux.run" && \
+ curl -o /tmp/nzbget.run -L "https://github.com/nzbget/nzbget/releases/download/v20.0/nzbget-20.0-bin-linux.run" && \
  sh /tmp/nzbget.run --destdir /app/nzbget && \
  echo "**** configure nzbget ****" && \
  mkdir -p /defaults && \

@@ -42,7 +42,7 @@ RUN \
 	p7zip \
 	python2 \
 	unrar \
-	wget && \
+	wget ufw && \
  echo "**** install nzbget ****" && \
  mkdir -p \
 	/app/nzbget && \

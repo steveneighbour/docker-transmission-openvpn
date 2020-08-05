@@ -5,7 +5,8 @@ VOLUME /data
 VOLUME /config
 
 ENV DOCKERIZE_VERSION=v0.6.0
-RUN apk --no-cache add bash dumb-init ip6tables openvpn shadow curl jq \
+RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+    && apk --no-cache add bash dumb-init ip6tables ufw@testing openvpn shadow curl jq \
     && echo "Install dockerize $DOCKERIZE_VERSION" \
     && wget -qO- https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz | tar xz -C /usr/bin \
     && rm -rf /tmp/* /var/tmp/* \
@@ -14,7 +15,6 @@ RUN apk --no-cache add bash dumb-init ip6tables openvpn shadow curl jq \
     && usermod -G users abc
 
 ADD openvpn/ /etc/openvpn/
-ADD transmission/ /etc/transmission/
 
 ENV OPENVPN_USERNAME=**None** \
     OPENVPN_PASSWORD=**None** \
@@ -45,9 +45,10 @@ RUN \
  echo "**** install nzbget ****" && \
  mkdir -p \
 	/app/nzbget && \
- #curl -o /tmp/json -L "http://nzbget.net/info/nzbget-version-linux.json" && \
- #NZBGET_VERSION=$(grep "${NZBGET_BRANCH}" /tmp/json  | cut -d '"' -f 4) && \
- curl -o /tmp/nzbget.run -L "https://github.com/nzbget/nzbget/releases/download/v20.0/nzbget-20.0-bin-linux.run" && \
+ curl -o /tmp/json -L "http://nzbget.net/info/nzbget-version-linux.json" && \
+ NZBGET_VERSION=$(grep "${NZBGET_BRANCH}" /tmp/json  | cut -d '"' -f 4) && \
+ curl -o /tmp/nzbget.run -L "${NZBGET_VERSION}" && \
+ #curl -o /tmp/nzbget.run -L "https://github.com/nzbget/nzbget/releases/download/v20.0/nzbget-20.0-bin-linux.run" && \
  sh /tmp/nzbget.run --destdir /app/nzbget && \
  echo "**** configure nzbget ****" && \
  mkdir -p /defaults && \

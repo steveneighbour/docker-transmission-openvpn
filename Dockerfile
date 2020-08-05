@@ -5,7 +5,7 @@ VOLUME /data
 VOLUME /config
 
 ENV DOCKERIZE_VERSION=v0.6.0
-RUN apk --no-cache add bash dumb-init ip6tables ufw openvpn shadow curl jq \
+RUN apk --no-cache add bash dumb-init ip6tables openvpn shadow curl jq \
     && echo "Install dockerize $DOCKERIZE_VERSION" \
     && wget -qO- https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz | tar xz -C /usr/bin \
     && rm -rf /tmp/* /var/tmp/* \

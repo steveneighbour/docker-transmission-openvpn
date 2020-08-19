@@ -16,6 +16,7 @@ RUN apk --no-cache add bash dumb-init ip6tables openvpn shadow curl jq \
     && usermod -G users abc
 
 ADD openvpn/ /etc/openvpn/
+ADD transmission/ /etc/transmission/
 
 ENV OPENVPN_USERNAME=**None** \
     OPENVPN_PASSWORD=**None** \

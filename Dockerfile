@@ -5,8 +5,9 @@ VOLUME /data
 VOLUME /config
 
 ENV DOCKERIZE_VERSION=v0.6.0
-RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
-    && apk --no-cache add bash dumb-init ip6tables ufw@testing openvpn shadow curl jq \
+#RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories \
+    #&& apk --no-cache add bash dumb-init ip6tables ufw@testing openvpn shadow curl jq \
+RUN apk --no-cache add bash dumb-init ip6tables openvpn shadow curl jq \
     && echo "Install dockerize $DOCKERIZE_VERSION" \
     && wget -qO- https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz | tar xz -C /usr/bin \
     && rm -rf /tmp/* /var/tmp/* \

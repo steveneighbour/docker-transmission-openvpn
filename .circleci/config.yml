@@ -13,34 +13,7 @@ workflows:
   build-docker-images:
     jobs:
       - build-with-buildx:
-          name: build-transmission-openvpn-images
           context: dockerhub
-          image-name: haugene/transmission-openvpn
-          build-context: "."
-          filters:
-            branches:
-              only:
-                - dev
-                - master
-            tags:
-              only: /^\d+\.\d+.*/
-      - build-with-buildx:
-          name: build-reverse-proxy-images
-          context: dockerhub
-          image-name: haugene/transmission-openvpn-proxy
-          build-context: "proxy"
-          filters:
-            branches:
-              only:
-                - dev
-                - master
-            tags:
-              only: /^\d+\.\d+.*/
-      - build-with-buildx:
-          name: build-rss-plugin-images
-          context: dockerhub
-          image-name: haugene/transmission-rss
-          build-context: "plugins/rss"
           filters:
             branches:
               only:
@@ -52,11 +25,6 @@ workflows:
 # Job definitions, used by the workflows.
 jobs:
   build-with-buildx:
-    parameters:
-      image-name:
-        type: string
-      build-context:
-        type: string
     machine:
       image: ubuntu-2004:202010-01
     steps:
@@ -71,6 +39,9 @@ jobs:
       - run:
           name: Login to Docker Hub
           command: echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+      - run:
+          name: Login to GitHub Container Registry
+          command: echo $GITHUB_PASS | docker login ghcr.io -u $DOCKER_USER --password-stdin
       - calculate-tag-name
       - run:
           name: Set up buildx and build/push images
@@ -79,10 +50,13 @@ jobs:
             docker buildx use mybuilder
             docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
             docker buildx ls
-            docker buildx build -t << parameters.image-name >>:$IMAGE_TAG --progress plain \
+            docker buildx build \
+              -t haugene/transmission-openvpn:$IMAGE_TAG \
+              -t ghcr.io/haugene/transmission-openvpn:$IMAGE_TAG \
+              --progress plain \
               --platform linux/arm,linux/arm64,linux/amd64 \
               --build-arg REVISION=$CIRCLE_SHA1 \
-              --push << parameters.build-context >>
+              --push .
 
   build-and-deploy-gh-pages:
     docker:

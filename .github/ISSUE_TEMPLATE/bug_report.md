@@ -7,14 +7,15 @@ assignees: ''
 
 ---
 
+<!-- 
 NB: PLEASE READ
 
 We expect you to look through the links provided in the checklist below
 and investigate your issue before you submit a new one.
 Please elaborate on what you tried before opening this issue.
 
-<b>If you do not follow the template and show that you have done this, your issue will be closed without further comment!!</b>
-
+If you do not follow the template and show that you have done this, your issue will be closed.
+-->
 ## Before creating this issue I have:
 <!-- Put an X (capital X,no space) in the boxes to tick them, like this [X] -->
 - [] Read through the pinned issues for related problems
@@ -24,7 +25,7 @@ Please elaborate on what you tried before opening this issue.
 - [] Verified I have tried using newest release as well
 
 
-### Container version & last working release
+### Container version & last working release (if known)
 <!-- Please post the version you are using -->
 Problem occurs in : <!-- Release tag and/or build number -->
 <br>
